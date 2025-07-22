@@ -13,13 +13,13 @@ def whatsapp_reply():
     resp = MessagingResponse()
     msg = resp.message()
 
-    # 👤 Inicializa estado do usuário
+    # Inicializa usuário com estado padrão
     if from_number not in usuarios:
         usuarios[from_number] = {"estado": "menu"}
 
     user = usuarios[from_number]
 
-    # ✍️ Captura de dados (nome, email, telefone)
+    # Captura automática de dados enviados
     nome_match = re.search(r"(meu nome é|nome:)\s*([a-zà-ÿ\'\s]+)", incoming_msg, re.IGNORECASE)
     email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", incoming_msg)
     telefone_match = re.search(r"\(?\d{2}\)?\s?\d{4,5}-?\d{4}", incoming_msg)
@@ -31,7 +31,7 @@ def whatsapp_reply():
     if telefone_match:
         user["telefone"] = telefone_match.group(0)
 
-    # 🎯 Detecção de intenção (planos ou teste)
+    # Identifica plano ou teste
     if "teste" in incoming_msg:
         user["tipo"] = "🎁 Teste gratuito de 3 horas"
     elif "1 mês" in incoming_msg:
@@ -41,68 +41,68 @@ def whatsapp_reply():
     elif "12 meses" in incoming_msg:
         user["tipo"] = "📅 Plano 12 meses – R$239,90"
 
-    # 🔄 Navegação
+    # Comandos de navegação
     if incoming_msg == "menu":
         user["estado"] = "menu"
     elif incoming_msg == "voltar":
         user["estado"] = "menu"
 
-    # 🎬 Menu principal
+    # Menu principal
     if user["estado"] == "menu":
-        msg.body("👋 *E aí! Eu sou o HomeBot, seu guia na terra das séries e filmes infinitos.*\n\nEscolhe o que você quer maratonar agora:\n"
-                 "1️⃣ Falar com um atendente humano (sim, de carne e osso 😎)\n"
-                 "2️⃣ Testar por 3 horinhas grátis 🎁\n"
-                 "3️⃣ Ver os planos que até o Sheldon aprovaria 💳\n"
-                 "4️⃣ Saber da qualidade das imagens (spoiler: é de cinema 🎥)\n"
-                 "5️⃣ Me mandar seus dados de uma vez 📝\n"
-                 "6️⃣ Ver o resumo da sua jornada até aqui 📋\n\n👉 Digita o número e vamos nessa!")
+        msg.body("👋 *E aí! Eu sou o HomeBot, seu guia oficial nas maratonas da HOMEFLIX.*\n\nEscolha uma opção pra começar:\n"
+                 "1️⃣ Falar com atendente humano 😎\n"
+                 "2️⃣ Solicitar teste grátis 🎁\n"
+                 "3️⃣ Ver planos disponíveis 💳\n"
+                 "4️⃣ Qualidade de imagem 📺\n"
+                 "5️⃣ Enviar seus dados 📝\n"
+                 "6️⃣ Ver resumo do seu atendimento 📋\n\nDigite o número da opção desejada.")
         user["estado"] = "menu_aguardando"
 
     elif user["estado"] == "menu_aguardando":
         if incoming_msg == "1":
             user["atendente"] = "👤 Atendimento solicitado"
-            msg.body("📞 Chamei o atendente! Enquanto ele chega, que tal escolher seu plano dos sonhos?\n\nDigite *menu* pra voltar.")
+            msg.body("📞 Um atendente foi acionado e já deve estar a caminho!\n\nDigite *menu* pra voltar ao menu principal.")
         elif incoming_msg == "2":
             user["tipo"] = "🎁 Teste gratuito de 3 horas"
-            msg.body("✅ Teste ativo! Manda aí seu *nome*, *e-mail* e *telefone* — ou como diria o Tony Stark: ‘deixe-me ver o que você tem aí’. 🦾\n\nDigite *menu* pra voltar.")
+            msg.body("✅ Show! Teste de 3h ativado. Agora me manda seu *nome*, *email* e *telefone* pra liberar o acesso. 😄\n\nDigite *menu* pra voltar.")
         elif incoming_msg == "3":
             user["estado"] = "sub_planos"
-            msg.body("💳 *Planos HOMEFLIX™* — tão bons que até o Netflix tá pensando em copiar:\n\n"
+            msg.body("💳 *Planos HOMEFLIX* disponíveis:\n\n"
                      "📆 *1 mês* → R$29,90\n"
                      "📆 *6 meses* → R$149,90\n"
-                     "📆 *12 meses* → R$239,90\n\nTodos com HD, FHD e 4K liberados! 🔥\n\nDigite *1 mês*, *6 meses*, *12 meses* ou *voltar*.")
+                     "📆 *12 meses* → R$239,90\n\nCom direito a HD, FHD e 4K liberado! 🔥\n\nDigite o plano desejado ou *voltar* pra retornar ao menu.")
         elif incoming_msg == "4":
-            msg.body("🎥 Qualidade da imagem? Mais nítida que plot twist de série britânica:\n\n✔️ HD\n✔️ Full HD\n✔️ 4K Ultra — só não fazemos café, ainda ☕\n\nDigite *menu* pra voltar.")
+            msg.body("📺 Imagens mais nítidas que revelação de série:\n\n✔️ HD\n✔️ Full HD\n✔️ 4K Ultra\n\nTudo disponível em qualquer plano!\n\nDigite *menu* pra voltar.")
         elif incoming_msg == "5":
-            msg.body("📝 Manda seus dados no estilo ficha de personagem, assim:\n\n*Nome: Maria das Séries*\n*Email: maria@homeflix.com*\n*Telefone: (11) 91234-5678*\n*Quero o plano de 6 meses*\n\nDigite *menu* pra voltar ou continue mandando os dados.")
+            msg.body("📝 Me envie seus dados num único texto assim:\n\n*Nome: Fulano da Série*\n*Email: fulano@homeflix.com*\n*Telefone: (11) 91234-5678*\n*Quero o plano de 6 meses*\n\nO HomeBot vai interpretar tudo! 😎 Digite *menu* se quiser voltar.")
         elif incoming_msg == "6":
-            resumo = "📋 *Resumo do seu rolê pelo HOMEFLIX:*\n"
-            resumo += f"👤 Nome: {user.get('nome', '❌ ainda não sei')}\n"
-            resumo += f"📧 Email: {user.get('email', '❌ cadê o e-mail?')}\n"
-            resumo += f"📞 Telefone: {user.get('telefone', '❌ me manda, vai')}\n"
-            resumo += f"🎁 Escolha: {user.get('tipo', '❌ nada por aqui')}\n"
-            msg.body(resumo + "\n\n🍿 Tá tudo aí! Digite *menu* pra voltar pro trailer da conversa.")
+            resumo = "📋 *Seu resumo com o HomeBot:*\n"
+            resumo += f"👤 Nome: {user.get('nome', '❌ não informado')}\n"
+            resumo += f"📧 Email: {user.get('email', '❌ não informado')}\n"
+            resumo += f"📞 Telefone: {user.get('telefone', '❌ não informado')}\n"
+            resumo += f"🎁 Escolha: {user.get('tipo', '❌ não informado')}\n"
+            msg.body(resumo + "\n\n🍿 Quando quiser voltar pro menu, é só digitar *menu*!")
         else:
-            msg.body("😬 Essa opção não tava no script... Digita *menu* pra recomeçar ou *voltar* pra dar aquela espiada nos planos.")
+            msg.body("😬 Opa! Essa opção não tá no catálogo… Digita *menu* pra ver as opções ou *voltar* pra onde estava.")
 
     elif user["estado"] == "sub_planos":
         if "1 mês" in incoming_msg:
             user["tipo"] = "📆 Plano 1 mês – R$29,90"
-            msg.body("✅ Plano de 1 mês salvo! Esse é tipo episódio piloto: rápido, barato e viciante.\n\nDigite *menu* pra voltar.")
+            msg.body("✅ Plano registrado: *1 mês – R$29,90*\n\n🍿 Digite *menu* pra explorar outras opções.")
         elif "6 meses" in incoming_msg:
             user["tipo"] = "📆 Plano 6 meses – R$149,90"
-            msg.body("✅ Meio ano de maratonas garantido! Isso sim é binge-watching profissional 😎\n\nDigite *menu* pra voltar.")
+            msg.body("✅ Plano registrado: *6 meses – R$149,90*\n\n🔥 Digite *menu* pra voltar ao menu principal.")
         elif "12 meses" in incoming_msg:
             user["tipo"] = "📆 Plano 12 meses – R$239,90"
-            msg.body("✅ Um ano inteiro de sofá, pipoca e episódios infinitos... Netflix que se cuide! 🍿\n\nDigite *menu* pra voltar.")
+            msg.body("✅ Plano registrado: *12 meses – R$239,90*\n\n🎬 Digite *menu* pra continuar navegando.")
         elif incoming_msg == "voltar":
             user["estado"] = "menu"
-            msg.body("🔙 Voltando pro menu... tipo voltar pro início da temporada. Digite *menu* pra ver as opções.")
+            msg.body("🔙 De volta ao menu principal!\n\nDigite *menu* pra exibir as opções.")
         else:
-            msg.body("🤔 Não reconheci essa resposta. Escolha *1 mês*, *6 meses*, *12 meses* ou *voltar* pra fugir dos spoilers.")
+            msg.body("🤔 Não encontrei esse plano no catálogo. Digite *1 mês*, *6 meses*, *12 meses* ou *voltar*.")
 
     else:
-        msg.body("👀 Ei, ainda tô tentando entender...\nTalvez você tenha digitado algo fora do script 🤖\n\n👉 Digita *menu* pra começar de novo ou manda seus dados estilo ficha técnica!")
+        msg.body("🤖 Recebi sua mensagem, mas não consegui entender.\nTente digitar *menu* pra começar ou envie seus dados como:\n*Nome:...*, *Email:...*, *Telefone:...*, *Plano desejado*.")
 
     return str(resp)
 
