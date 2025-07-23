@@ -1,73 +1,100 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 import os
-import re
+import random
 
 app = Flask(__name__)
+
+# Armazenamento temporário dos usuários em memória (usado por número de telefone)
 usuarios = {}
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp_reply():
     from_number = request.values.get("From", "")
-    incoming_msg = request.values.get("Body", "").strip().lower()
+    incoming_msg = request.values.get("Body", "").lower().strip()
     resp = MessagingResponse()
     msg = resp.message()
 
-    # Inicializa estado do usuário
+    # Inicializa dados do usuário se ainda não tiver
     if from_number not in usuarios:
-        usuarios[from_number] = {"estado": "menu", "humano": False}
+        usuarios[from_number] = {}
 
-    user = usuarios[from_number]
+    # Saudações e menu principal
+    if incoming_msg in ["oi", "olá", "ola", "homeflix", "menu", "início"]:
+        msg.body("🎬 Bem-vindo(a) à HOMEFLIX!\n\n📋 *Menu Principal:*\n"
+                 "1️⃣ Falar com atendente\n"
+                 "2️⃣ Solicitar teste grátis (3h)\n"
+                 "3️⃣ Ver planos disponíveis\n"
+                 "4️⃣ Qualidade de imagem\n"
+                 "5️⃣ Enviar resumo das escolhas\n"
+                 "6️⃣ Informar nome\n"
+                 "7️⃣ Informar dispositivo")
+    
+    # Falar com atendente
+    elif incoming_msg == "1":
+        msg.body("📞 Um atendente humano será notificado. Aguarde um momento...")
+        usuarios[from_number]["atendente"] = "Solicitado"
 
-    # 🎛️ Controle do modo humano
-    if "modo humano on" in incoming_msg:
-        user["humano"] = True
-        msg.body("🤐 HomeBot entrou no modo silêncio!\nAgora o atendimento é 100% humano. Chama o cafezinho! ☕")
-        return str(resp)
+    # Solicitar teste
+    elif incoming_msg == "2" or "teste" in incoming_msg:
+        msg.body("✅ Teste de 3 horas ativável!\nEnvie seu nome e tipo de dispositivo para liberarmos o acesso.")
+        usuarios[from_number]["teste"] = "Solicitado"
 
-    if "modo humano off" in incoming_msg:
-        user["humano"] = False
-        msg.body("🗣️ HomeBot de volta ao palco!\nPode mandar que eu tô online pra responder. 🎬🍿")
-        return str(resp)
+    # Ver planos
+    elif incoming_msg == "3" or "planos" in incoming_msg:
+        msg.body("💳 *Planos HOMEFLIX:*\n"
+                 "1 mês → R$29,90\n"
+                 "6 meses → R$149,90\n"
+                 "12 meses → R$239,90\n\nTodos incluem HD, FHD e 4K! 🔥")
+        usuarios[from_number]["planos"] = "Visualizado"
 
-    # 🚫 Se modo humano estiver ativado, não responde
-    if user.get("humano") is True:
-        return str(resp)
+    # Qualidade de imagem
+    elif incoming_msg == "4" or "qualidade" in incoming_msg:
+        msg.body("📺 Imagens com qualidade:\n✅ HD\n✅ Full HD\n✅ 4K Ultra\nIncluídas em todos os planos!")
 
-    # 👋 Saudações e exibir menu
-    if any(tag in incoming_msg for tag in ["oi", "olá", "menu", "início", "homeflix", "fala bot", "começar", "bom dia", "boa tarde", "boa noite"]):
-        user["estado"] = "menu"
-        msg.body("🎉 *E aí! Eu sou o HomeBot da HOMEFLIX!*\n\nPronto pra começar sua jornada maratonística?\nEscolha uma das opções abaixo e me diga o número:\n\n"
-                 "⿡ *1️⃣ Falar com um atendente humano* (sim, de carne e osso 😎)\n"
-                 "⿢ *2️⃣ Testar por 3 horinhas grátis* 🎁\n"
-                 "⿣ *3️⃣ Ver os planos que até o Sheldon aprovaria* 💳\n\n👉 Digita *1*, *2* ou *3* pra continuar.")
+    # Informar nome
+    elif incoming_msg.startswith("meu nome é"):
+        nome = incoming_msg.replace("meu nome é", "").strip().title()
+        usuarios[from_number]["nome"] = nome
+        msg.body(f"📝 Nome registrado: *{nome}*")
 
-    # 🧍 Falar com atendente
-    elif incoming_msg in ["1", "atendimento", "atendente", "quero ajuda", "falar com atendente", "suporte"]:
-        msg.body("📡 HomeBot acionando reforços humanos!\nNosso atendente real vai aparecer mais rápido que uma abertura de série. 🎬😄")
+    elif incoming_msg == "6":
+        msg.body("📛 Envie seu nome usando o formato:\n*Meu nome é Joãozinho*")
 
-    # 🎁 Solicitar teste
-    elif incoming_msg in ["2", "teste", "quero testar", "teste grátis", "3 horas", "testar"]:
-        user["estado"] = "aguardando_teste"
-        msg.body("🎁 *Teste gratuito de 3 horas ativado!*\n\nManda pra mim:\n👉 *Seu nome completo*\n👉 *Dispositivo* (ex: Smart TV LG, Fire Stick, TV Box...)")
+    # Informar dispositivo
+    elif incoming_msg.startswith("meu dispositivo é"):
+        dispositivo = incoming_msg.replace("meu dispositivo é", "").strip().title()
+        usuarios[from_number]["dispositivo"] = dispositivo
+        msg.body(f"📱 Dispositivo registrado: *{dispositivo}*")
 
-    # Receber dados do teste
-    elif user.get("estado") == "aguardando_teste":
-        user["dados_teste"] = incoming_msg
-        user["estado"] = "menu"
-        msg.body("✅ Show! Recebi os dados direitinho.\nVou liberar seu acesso de teste rapidinho. Enquanto isso... já escolheu o que vai maratonar? 🍿📺")
+    elif incoming_msg == "7":
+        msg.body("💻 Envie seu dispositivo usando o formato:\n*Meu dispositivo é TV / celular / notebook...*")
 
-    # 💳 Ver planos
-    elif incoming_msg in ["3", "ver planos", "quero plano", "quais são os planos", "planos", "valores"]:
-        msg.body("💳 *Planos HOMEFLIX™* — só alegria:\n\n"
-                 "📅 *1 Mês – R$29,90*\nIdeal pra testar as águas… ou mergulhar de cabeça! 🏖️\n\n"
-                 "📅 *6 Meses – R$149,90*\nSai a R$24,98/mês — mais econômico, sem perder a maratona! 🎯\n\n"
-                 "📅 *12 Meses – R$239,90*\nSai a R$19,99/mês — plano dos maratonistas sérios. 😎📆\n\n"
-                 "✨ Todos incluem acesso em *HD, FHD e até 4K Ultra*!\nNada de taxas extras, só conteúdo de primeira. 🎥🍿\n\nDigite *menu* pra voltar ou já manda o plano desejado!")
+    # Resumo das escolhas
+    elif incoming_msg == "5" or "resumo" in incoming_msg:
+        dados = usuarios[from_number]
+        if not dados:
+            msg.body("🔍 Nenhuma informação foi registrada ainda.\nDigite *menu* para começar!")
+        else:
+            resumo = "📋 *Resumo do Cliente HOMEFLIX:*\n"
+            for chave, valor in dados.items():
+                resumo += f"🔹 {chave.capitalize()}: {valor}\n"
+            msg.body(resumo)
 
-    # 🛑 Mensagem não reconhecida
+    # Plano escolhido via texto livre
+    elif "1 mês" in incoming_msg:
+        usuarios[from_number]["plano"] = "1 mês - R$29,90"
+        msg.body("🗓️ Plano registrado: *1 mês - R$29,90*")
+    elif "6 meses" in incoming_msg:
+        usuarios[from_number]["plano"] = "6 meses - R$149,90"
+        msg.body("🗓️ Plano registrado: *6 meses - R$149,90*")
+    elif "12 meses" in incoming_msg:
+        usuarios[from_number]["plano"] = "12 meses - R$239,90"
+        msg.body("🗓️ Plano registrado: *12 meses - R$239,90*")
+
+    # Quando não entende
     else:
-        msg.body("🤖 O HomeBot ainda tá tentando entender essa mensagem...\nMas não se preocupe! Digita *menu* pra ver as opções ou manda sua dúvida que eu desenrolo pra você. 😄")
+        msg.body("❓ Não entendi... Digite *menu* para ver as opções ou envie sua dúvida com mais detalhes!")
 
     return str(resp)
 
